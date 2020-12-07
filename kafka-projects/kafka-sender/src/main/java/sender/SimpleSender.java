@@ -17,12 +17,18 @@ public class SimpleSender {
         props.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
 
         KafkaProducer<String, String> producer = new KafkaProducer<>(props);
+        sendMessageFor(producer, "KEY-1");
+        sendMessageFor(producer, "KEY-2");
+        sendMessageFor(producer, "KEY-3");
+
+        producer.close();
+    }
+
+    private static void sendMessageFor(KafkaProducer<String, String> producer, String key) {
         for (int i = 0; i < 10; i++) {
-            ProducerRecord<String, String> record = new ProducerRecord<>("first-topic", "test-message",
+            ProducerRecord<String, String> record = new ProducerRecord<>("first-topic", key,
                     "this is a test message for: " + i);
             producer.send(record);
         }
-
-        producer.close();
     }
 }
