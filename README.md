@@ -37,6 +37,10 @@ kafka-console-consumer.bat --topic first-topic --bootstrap-server localhost:9092
 https://drive.google.com/drive/folders/1cZhFXgBj1hmX7CqCt92YB4sB_wxhpM8I?usp=sharing
 
 
+kafka-console-consumer.bat --topic first-topic --bootstrap-server localhost:9092 --property print.key=true
+
+
+
 
 
 

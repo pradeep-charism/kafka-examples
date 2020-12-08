@@ -28,7 +28,9 @@ public class SimpleReceiver {
         System.out.println("waiting for messages");
         while (true) {
             ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(10));
-            records.forEach(record -> System.out.println("key: " + record.key() + " value: " + record.value() + " from partition " + record.partition()));
+//            records.forEach(record -> System.out.println("key: " + record.key() + " value: " + record.value() + " from partition " + record.partition()));
+            records.forEach(record -> System.out.println("key: " + record.key() + " value: " + record.value() + " from partition " + record.partition()
+                    + " at offset " + record.offset()));
         }
     }
 }
