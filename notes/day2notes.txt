@@ -1,0 +1,82 @@
+
+When consumers join a group and subscribe to a topic, a message is consumed by only one member of the group.
+
+ie if a if one consumer of the group has already consumer, another member of the same group will not be able to consume 
+the message.
+
+The consumers in a group share a group id. The consumers in a group divide the topic partitions as fairly amongst
+themselves as possible by establishing that each partition is only consumed by a single consumer from the group.
+
+
+A single partition can't be shared by multiple consumers of the same group.
+
+But a single consumer of the group can consume from multiple partitions.
+
+When a consumer is consuming from only one partition, the order of messages is guaranteed.
+
+ie only after consuming offset 0, it will consume offset 1.
+
+Let partition 1 contains 100 records(messages).
+The initial position of the current offset is 0.
+When we call the poll method and receive first 20 messages, we have consumed the offsets 0 to 19.
+So the current offset will be 20.
+
+The current offset is a simple integer that is used by kafka to maintain the current position of a consumer.
+
+current offset ---------->Sent records ------>This is used to avoid resending the same records again to the same consumer.
+committed offset ---------->Processed records------->It is used to avoid resending same records to a new consumer in the event of a partition rebalance.
+
+current offset for partition 0 is 10.
+currently consumer of partition 0 (consumer-a) is processing offset 9.
+consumer a has crashed while it is processing offset 9.(so the committed offset is only 8).
+
+consumber b starts listening from partition 0.
+so consumer b will start consuming from offset 9 of partition 0.
+
+The seek function is used to consume messages from a specific offset.
+
+
+User Defined Objects:
+
+At the sender side, we need to have a Serializer for the object.
+At the receiver side, we need to have a Deserializer.
+
+
+User Defined Serializer should implement an interface called Serializer.
+
+interface Serializer<T>{
+	byte[] serialize(String topic,T data);
+}
+
+
+
+User Defined Deserializer should should implement an interface called Deserializer.
+
+interface Deserializer<T>{
+	T deserialize(String topic,byte[] data);
+}
+
+
+Kafka is more suitable for large number of messages of smaller size.(practical limit 1 MB)
+Kafka is not suitable for few messages of larger size.
+
+
+
+
+Designation	Partition
+
+Developer	0
+Accountant	1
+Architect		2
+Any other		3
+
+
+
+Create the Employee Sender which uses the EmployeePartitioner and send some sample employee objects with different designation.
+
+Create a EmployeeReceiver which listens at specific partition. The partition number should be passed as command line argument.
+The application should be such that one consumer should consume only developers, the next should consume accountants, the third should consume architects
+and the fourth should consume any other designation.
+
+So run 4 instances of EmployeeReceiver with the respective partition number as the command line argument
+

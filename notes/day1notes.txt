@@ -1,0 +1,170 @@
+Messaging Server:
+
+It is responsible for sending and receiving data asynchronously.
+
+
+Sener--------------------->MOM------------------------>Receiver
+
+
+MOM----->Message Oriented Middleware.
+
+
+Traditional MOM ---------->Apache Active MQ,Rabbit MQ,IBM MQ ,Weblogic MQ,Tibco Rendezvous
+
+In the traditional messaging servers, the same message is duplicated across all the nodes in the cluster.
+
+
+Two types of messaging
+
+1. Point to Point: (1 to 1)
+
+Sender---------------------------->Server---------------------->Receiver
+
+
+In server, Queue contains the messages till they are delivered to the receiver.
+
+2. Publish and Subscribe: (1 to many)
+
+				|------------->Receiver1
+Sender----------------------------->Server--------|------------->Receiver2
+				|------------->Receiver3
+
+
+In server, Topic contains the messages till they are delivered to the subscribers.
+
+
+The Queue and the Topic are collectively called Messaging Destinations.
+
+Kafka supports only publish and subscribe model.
+
+In kafka, the same message is not duplicated to all the nodes. Based on the replication factor, it is replicated to only few nodes and not all the nodes.
+
+A message is the fundamental unit of data in kafka.
+It is also called a log.
+
+A kafka topic is divided into a number of partitions. Partitions allow you to parallelize a topic by splitting data in 
+a particular topic across multiple brokers.
+Each partition can be placed on a separate machine to allow for multiple consumers to read from a topic in parallel.
+
+Based on the replication factor, a single partition is replicated across multiple nodes.
+
+Assume that a topic called topic-A has 4 partitions namely 0,1,2 and 3.
+
+Assume that there are 5 nodes in the cluster.(node-A,node-B , node-C,node-D and node-E)
+
+Assume that the replication factor 3.
+
+
+node-A ---------------->0,1,2
+node-B----------------->3,0
+node-C----------------->1,2
+node-D----------------->3,0,1
+node-E------------------>2,3
+
+
+Kafka Setup:
+
+1. set the JAVA_HOME environment variable.
+2. download apache kafka from https://www.apache.org/dyn/closer.cgi?path=/kafka/2.5.0/kafka_2.12-2.5.0.tgz and extract it.
+
+ kafka_2.12-2.5.0.tgz
+
+2.12 is the scala version used to develop kafka.
+2.5.0 is the kafka version.
+
+
+kafka contains 4 subdirectories bin,config,libs and site-docs.
+
+bin-----------contains binary scripts for starting,stopping and administration.(for unix/linux)
+bin\windows--------- contains the scripts for windows
+
+config-------- contains configuration files.
+
+libs -------- contains the library files in the form of jar files.
+
+site-docs -------- contains documentation.
+
+
+Zookeeper is a special service which maintains the meta data of kafka.
+
+Starting the server:
+
+1. start the zookeeper 
+
+bin\windows\zookeeper-server-start.bat config\zookeeper.properties
+
+This will start zookeeper at port 2181.
+
+2. start the kafka server
+
+bin\windows\kafka-server-start.bat config\server.properties
+
+This will start kafka server at port 9092.
+
+3. create a topic called first-topic
+ from bin\windows directory
+
+kafka-topics.bat --create --topic first-topic --partitions 4 --replication-factor 1 --zookeeper localhost:2181
+
+4. start the kafka console producer
+
+ from bin\windows directory
+kafka-console-producer.bat --topic first-topic --bootstrap-server localhost:9092
+
+
+5. open another command window and run the kafka-console-consumer from bin\windows directory
+
+kafka-console-consumer.bat --topic first-topic --bootstrap-server localhost:9092
+
+
+Kafka stores the messages in the topic in the form of byte array.
+
+Serializer is used to convert a java object into a byte[].
+Deserializer is used to convert a byte[] into a java object.
+
+Serializer is used by message sender.
+Deserializer is used by message receiver.
+
+Each message is associated with a key and value.
+key is used to group the messages.
+
+Kafka guarantees that all the messages with the same key will go to the same partition.
+
+Group Id guarantees that the message already consumed by one consumer is not consumed by another.
+
+
+Kafka by default, uses a partitioner called HashPartitioner.
+
+parititon to which the current message goes= hashcode value of the key % number of parititions
+
+
+User defined partitioner.
+
+
+Implement an interface called Paritioner and override the partition method.
+
+interface Partitioner{
+	void configure(Map m);//invoked only once(initialization logic)
+	void close();//invoked only once(for cleanup)
+	int partition(.......);//invoked for each message
+
+}
+
+key		partition
+test-message-1	0
+test-message-1	1
+test-message-2	2
+other keys		3
+
+
+
+
+
+
+
+
+
+
+
+
+
