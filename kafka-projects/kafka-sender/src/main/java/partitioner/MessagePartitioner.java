@@ -1,9 +1,9 @@
-package main.java.sender;
+package main.java.partitioner;
+
+import java.util.Map;
 
 import org.apache.kafka.clients.producer.Partitioner;
 import org.apache.kafka.common.Cluster;
-
-import java.util.Map;
 
 public class MessagePartitioner implements Partitioner {
 
@@ -23,13 +23,13 @@ public class MessagePartitioner implements Partitioner {
 	public int partition(String topic, Object key, byte[] keyBytes, Object value, byte[] valueBytes, Cluster cluster) {
 		// TODO Auto-generated method stub
 		int partition=3;
-		if(key.equals("KEY-1")) {
+		if(key.equals("test-message-1")) {
 			partition=0;
 		}
-		else if(key.equals("KEY-2")) {
+		else if(key.equals("test-message-2")) {
 			partition=1;
 		}
-		else if(key.equals("KEY-3")) {
+		else if(key.equals("test-message-3")) {
 			partition=2;
 		}
 		System.out.println("sending message with key "+key+" to partition "+partition);

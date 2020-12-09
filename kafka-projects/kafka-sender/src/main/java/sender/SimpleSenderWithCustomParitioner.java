@@ -1,5 +1,6 @@
 package main.java.sender;
 
+import main.java.partitioner.MessagePartitioner;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;

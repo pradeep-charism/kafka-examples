@@ -1,5 +1,6 @@
 package main.java.sender;
 
+import main.java.partitioner.MessagePartitioner;
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.StringSerializer;
 
