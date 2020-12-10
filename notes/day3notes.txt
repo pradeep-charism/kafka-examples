@@ -1,0 +1,85 @@
+Avro Format:
+
+Avro is a binary serialization format. It relies on schema and the schema is defined in Json format.
+
+
+sample avro schema:
+
+
+{
+"namespace":"com.jpmc.training",
+"type":"record",
+"name":"customer",
+"fields":[
+{"name":"id","type":"int"},
+{"name":"name","type":"string"},
+{"name":"email","type":"string"}
+]}
+
+Avro schema is stored in the Schema Registry. Schema Registry is a component provided by Confluent Kafka distribution
+
+Confluent Kafka Components:
+
+Zookeeper
+Kafka
+Schema Registry(for storing avro schema)
+Connect (for connectors to interact with datastores like rdbms,nosql,elastic search and etc)
+Ksql Server(for providing sql based interface for interacting with kafka)
+Rest Proxy(A rest server for exposing kafka commands/programs as restful services)
+Control Center(A web based monitoring tool)
+
+
+
+Confluent Kafka sub directories:
+
+bin -------- binary scripts
+etc -------- configuration files (similar to config directory in apache kafka)
+share ------ library jar files (similar to libs directory in apache kafka)
+lib ----- system service configuration files
+
+GenericRecord---------avro format data
+
+schema registry runs at port number 8081
+
+
+Kafka Connect:
+
+The most common usecase of kafka is building continuous etl pipeline.
+
+
+Source	Extract  (Connector)			Transform					Load(Connector)  Sink	
+RDBMS------------------------>Kafka Topic 1---------->Kafka Streaming Application--------->Kafka Topic 2---------------------------------->Nosql
+Oracle Table											(Cassandra table)
+
+
+
+Kafka connect is a framework for connecting kafka with external systems like databases,nosql dbs,search indexes, file systems and etc.
+
+The kafka connect framework uses connectors to connect kafka with external systems.
+
+Kafka connectors are ready-to-use components which help us to import data from external systems into kafka topics and export data from
+kafka topics into external systems.
+
+Two types of connectors
+
+1. Source Connector (datastore to kafka topic)
+2. Sink Connector (kafka topic to datastore)
+																
+
+
+	Source Connector
+Text File----------------------------->Kafka Topic
+c:\input\test.txt		test-topic-1
+
+
+syntax to start the connect process.
+
+bin\windows\connect-standalone 	connect-configfile	listofconnectorpropertiesfiles
+
+
+	Source Connector		Sink Connector
+Text File----------------------------->Kafka Topic--------------------------->Text File
+c:\input\test1.txt		test-topic-2		c:\output\test1.txt
+
+
+

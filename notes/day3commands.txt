@@ -1,0 +1,285 @@
+package com.jpmc.training.kafkasender;
+
+import java.util.Properties;
+
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.StringSerializer;
+
+import com.jpmc.training.domain.Employee;
+import com.jpmc.training.partitioner.EmployeePartitioner;
+import com.jpmc.training.serializer.EmployeeSerializer;
+
+public class EmployeeSenderWithCustomPartitioner {
+	
+	public static void main(String[] args) {
+		Properties props=new Properties();
+		props.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+		props.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+		props.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, EmployeeSerializer.class.getName());
+		props.setProperty(ProducerConfig.PARTITIONER_CLASS_CONFIG, EmployeePartitioner.class.getName());
+		KafkaProducer<String, Employee> producer=new KafkaProducer<>(props);
+		for(int i=1001;i<=1010;i++) {
+		ProducerRecord<String, Employee> emp=new ProducerRecord<String, Employee>("emp-topic", 
+				new Employee(i, "Name "+i, "Developer"));
+		producer.send(emp);
+		}
+		
+		for(int i=1011;i<=1020;i++) {
+			ProducerRecord<String, Employee> emp=new ProducerRecord<String, Employee>("emp-topic", 
+					new Employee(i, "Name "+i, "Accountant"));
+			producer.send(emp);
+			}
+		for(int i=1021;i<=1030;i++) {
+			ProducerRecord<String, Employee> emp=new ProducerRecord<String, Employee>("emp-topic", 
+					new Employee(i, "Name "+i, "Architect"));
+			producer.send(emp);
+			}
+		
+		for(int i=1031;i<=1040;i++) {
+			ProducerRecord<String, Employee> emp=new ProducerRecord<String, Employee>("emp-topic", 
+					new Employee(i, "Name "+i, "IT Admin"));
+			producer.send(emp);
+			}
+		for(int i=1041;i<=1050;i++) {
+			ProducerRecord<String, Employee> emp=new ProducerRecord<String, Employee>("emp-topic", 
+					new Employee(i, "Name "+i, "Consultant"));
+			producer.send(emp);
+			}
+		producer.close();
+		
+		System.out.println("employee objects sent");
+	}
+
+}
+
+
+
+package com.jpmc.training.domain;
+
+public class Employee {
+	private int empId;
+	private String name;
+	private String designation;
+	public int getEmpId() {
+		return empId;
+	}
+	public void setEmpId(int empId) {
+		this.empId = empId;
+	}
+	public String getName() {
+		return name;
+	}
+	public void setName(String name) {
+		this.name = name;
+	}
+	public String getDesignation() {
+		return designation;
+	}
+	public void setDesignation(String designation) {
+		this.designation = designation;
+	}
+	public Employee(int empId, String name, String designation) {
+		super();
+		this.empId = empId;
+		this.name = name;
+		this.designation = designation;
+	}
+	public Employee() {
+		super();
+		// TODO Auto-generated constructor stub
+	}
+	@Override
+	public String toString() {
+		return "Employee [empId=" + empId + ", name=" + name + ", designation=" + designation + "]";
+	}
+	
+	
+	
+
+}
+
+
+
+
+
+package com.jpmc.training.kafkareceiver;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+
+
+
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.StringDeserializer;
+
+
+public class EmployeeReceiverFromSpecificPartition {
+	public static void main(String[] args) {
+		Properties props=new Properties();
+		props.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+		props.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+		props.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+		//props.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "group-1");
+		
+		KafkaConsumer<String, String> consumer=new KafkaConsumer<>(props);
+		
+		List<TopicPartition> partitions=new ArrayList<>();
+		int partitionNumber=Integer.parseInt(args[0]);
+		TopicPartition partition=new TopicPartition("emp-topic", partitionNumber);
+		partitions.add(partition);
+		
+		consumer.assign(partitions);
+		System.out.println("waiting for messages from  "+partitionNumber);
+		while(true) {
+			ConsumerRecords<String, String> records=consumer.poll(Duration.ofSeconds(10));
+			records.forEach(record->System.out.println("key: "+record.key()+" value: "+record.value()+" from partition "+record.partition()));
+		}
+	}
+
+}
+
+
+
+
+sudo ./confluent start
+
+{
+"namespace":"com.jpmc.training.avro",
+"type":"record",
+"name":"customer",
+"fields":[
+{"name":"id","type":"int"},
+{"name":"name","type":"string"},
+{"name":"email","type":"string"}
+]
+}
+
+sudo ./kafka-topics --create --topic avro-test-topic --partitions 3 --replication-factor 1 --zookeeper localhost:2181
+
+
+<repositories>
+  <repository>
+  <id>redhat-avro</id>
+  <url>https://maven.repository.redhat.com/earlyaccess/all/</url>
+  </repository>
+  </repositories>
+  <dependencies>
+  <!-- https://mvnrepository.com/artifact/io.confluent/kafka-avro-serializer -->
+<dependency>
+    <groupId>io.confluent</groupId>
+    <artifactId>kafka-avro-serializer</artifactId>
+    <version>5.3.0</version>
+</dependency>
+  
+  </dependencies>
+
+
+package com.jpmc.training.avrosender;
+
+import java.io.FileInputStream;
+
+import java.io.IOException;
+import java.util.Properties;
+
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.StringSerializer;
+
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
+
+public class AvroSenderTest {
+public static void main(String[] args) {
+	byte[] array=new byte[1024];
+	
+	try {
+		FileInputStream fin=new FileInputStream("customer.avsc");
+		fin.read(array);
+		fin.close();
+		
+		Properties props=new Properties();
+		props.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+		props.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+		props.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaAvroSerializer.class.getName());
+		props.setProperty("schema.registry.url", "http://localhost:8081");
+		
+		
+		
+		KafkaProducer<String, GenericRecord> producer=new KafkaProducer<>(props);
+		
+		Schema.Parser parser=new Schema.Parser();
+		
+		Schema schema=parser.parse(new String(array));
+		
+		
+		GenericRecord record=new GenericData.Record(schema);
+		record.put("id", 1001);
+		record.put("name", "Rakesh");
+		record.put("email", "rakesh@gmail.com");
+		
+		
+		ProducerRecord< String, GenericRecord> rec=new 
+				ProducerRecord<String, GenericRecord>("avro-test-topic", "avro-data",record);
+		producer.send(rec);
+		producer.close();
+		System.out.println("message sent");
+		
+	} catch ( IOException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
+	
+}
+}
+
+curl http://localhost:8081/subjects/
+curl http://localhost:8081/subjects/avro-test-topic-value/versions
+curl http://localhost:8081/subjects/avro-test-topic-value/versions/1
+
+sudo ./kafka-console-consumer --topic avro-test-topic --bootstrap-server localhost:9092 --from-beginning
+
+sudo ./kafka-avro-console-consumer --topic avro-test-topic --bootstrap-server localhost:9092 --from-beginning
+
+
+
+
+bin\windows\connect-standalone.bat config\connect-standalone.properties config\connect-file-source.properties
+
+kafka-topics.bat --list --zookeeper localhost:2181
+
+kafka-console-consumer.bat --topic test-topic-1 --bootstrap-server localhost:9092 --from-beginning
+
+
+
+connect-file-source.properties
+
+name=local-file-source
+connector.class=FileStreamSource
+tasks.max=1
+file=c:/input/test1.txt
+topic=test-topic-2
+
+
+connect-file-sink.properties
+
+name=local-file-sink
+connector.class=FileStreamSink
+tasks.max=1
+file=c:/output/test1.txt
+topics=test-topic-2
+
+							   connect process config file		source connector config file			sink connector config file
+bin\windows\connect-standalone.bat config\connect-standalone.properties config\connect-file-source.properties  config\connect-file-sink.properties
+
+
+
