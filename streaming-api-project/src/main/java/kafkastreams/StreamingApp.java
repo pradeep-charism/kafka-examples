@@ -4,6 +4,7 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
 
 import java.util.Properties;
@@ -17,14 +18,15 @@ public class StreamingApp {
         props.setProperty(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.StringSerde.class.getName());
 
         StreamsBuilder builder = new StreamsBuilder();
-        KStream<String, String> textLines = builder.stream("test-topic-3");
+        KStream<String, String> textLines = builder.stream("test-topic-5");
         KStream<String, String> upperCaseTexts = textLines.mapValues(line -> {
             System.out.println(line);
             return line.toUpperCase();
         });
-        upperCaseTexts.to("test-topic-4");
+        upperCaseTexts.to("test-topic-6");
 
-        KafkaStreams kafkaStreams = new KafkaStreams(builder.build(), props);
+        Topology topology = builder.build();
+        KafkaStreams kafkaStreams = new KafkaStreams(topology, props);
         kafkaStreams.start();
 
 
