@@ -18,7 +18,10 @@ public class StreamingApp {
 
         StreamsBuilder builder = new StreamsBuilder();
         KStream<String, String> textLines = builder.stream("test-topic-3");
-        KStream<String, String> upperCaseTexts = textLines.mapValues(line -> line.toUpperCase());
+        KStream<String, String> upperCaseTexts = textLines.mapValues(line -> {
+            System.out.println(line);
+            return line.toUpperCase();
+        });
         upperCaseTexts.to("test-topic-4");
 
         KafkaStreams kafkaStreams = new KafkaStreams(builder.build(), props);
