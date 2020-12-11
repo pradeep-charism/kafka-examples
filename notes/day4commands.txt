@@ -1,0 +1,225 @@
+connect-file-source-etl.properties
+
+name=local-file-source
+connector.class=FileStreamSource
+tasks.max=1
+file=c:/input/test3.txt
+topic=test-topic-3
+
+
+connect-file-sink-etl.properties
+
+name=local-file-sink
+connector.class=FileStreamSink
+tasks.max=1
+file=c:/output/test3.txt
+topics=test-topic-4
+
+
+
+
+ <dependencies>
+  <!-- https://mvnrepository.com/artifact/org.apache.kafka/kafka-streams -->
+<dependency>
+    <groupId>org.apache.kafka</groupId>
+    <artifactId>kafka-streams</artifactId>
+    <version>2.5.0</version>
+</dependency>
+  
+  </dependencies>
+
+
+package com.jpmc.training.kafkastreams;
+
+import java.util.Properties;
+
+import org.apache.kafka.common.serialization.Serdes.StringSerde;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.kstream.KStream;
+
+public class StreamTest1 {
+public static void main(String[] args) {
+Properties props=new Properties();
+props.setProperty(StreamsConfig.APPLICATION_ID_CONFIG	, "file-etl-app");
+props.setProperty(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG	, "localhost:9092");
+props.setProperty(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, StringSerde.class.getName());
+props.setProperty(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, StringSerde.class.getName());
+
+StreamsBuilder builder=new StreamsBuilder();
+
+KStream<String, String> textLines=builder.stream("test-topic-3");
+KStream<String, String> upperCaseText=textLines.mapValues(line->{
+System.out.println("processing line "+line);	
+return line.toUpperCase();
+
+});
+upperCaseText.to("test-topic4");
+
+Topology topogy=builder.build();
+KafkaStreams streams=new KafkaStreams(topogy, props);
+
+streams.start();
+
+
+try {
+	Thread.sleep(5*60*1000);
+} catch (InterruptedException e) {
+	// TODO Auto-generated catch block
+	e.printStackTrace();
+}
+}
+}
+
+
+
+bin\windows\connect-standalone.bat config\connect-standalone.properties config\connect-file-source-etl.properties config\connect-file-sink-etl.properties
+
+
+connect-file-sink-etl.properties
+
+name=local-file-sink
+connector.class=FileStreamSink
+tasks.max=1
+file=c:/output/test4.txt
+topics=test-topic-6
+
+connect-file-source-etl.properties
+
+name=local-file-source
+connector.class=FileStreamSource
+tasks.max=1
+file=c:/input/test4.txt
+topic=test-topic-5
+
+
+Streaming code
+
+
+package com.jpmc.training.kafkastreams;
+
+import java.util.Properties;
+
+import org.apache.kafka.common.serialization.Serdes.StringSerde;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.kstream.KStream;
+
+public class StreamTest1 {
+public static void main(String[] args) {
+Properties props=new Properties();
+props.setProperty(StreamsConfig.APPLICATION_ID_CONFIG	, "file-etl-app");
+props.setProperty(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG	, "localhost:9092");
+props.setProperty(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, StringSerde.class.getName());
+props.setProperty(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, StringSerde.class.getName());
+
+StreamsBuilder builder=new StreamsBuilder();
+
+KStream<String, String> textLines=builder.stream("test-topic-5");
+KStream<String, String> upperCaseText=textLines.mapValues(line->{
+System.out.println("processing line "+line);	
+return line.toUpperCase();
+
+});
+upperCaseText.to("test-topic-6");
+
+Topology topogy=builder.build();
+KafkaStreams streams=new KafkaStreams(topogy, props);
+
+streams.start();
+
+
+try {
+	Thread.sleep(5*60*1000);
+} catch (InterruptedException e) {
+	// TODO Auto-generated catch block
+	e.printStackTrace();
+}
+}
+}
+
+
+ create database trainingdb;
+
+
+ use trainingdb;
+
+ create table employee(emp_id integer auto_increment,emp_name varchar(20),designation varchar(20),primary key(emp_id));
+
+mysql> insert into employee values(1001,"Rajiv","Developer");
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into employee(emp_name,designation) values("Surya","Developer");
+Query OK, 1 row affected (0.00 sec)
+
+insert into employee(emp_name,designation) values("Ritvik","Accountant");
+
+
+mysql> select * from employee;
+
+sudo ./confluent status
+
+sudo ./confluent stop
+
+sudo ./confluent start schema-registry
+
+https://dev.mysql.com/downloads/file/?id=496254
+
+
+content of confluent/etc/kafka-connect-jdbc/mysql-source-connector.properties 
+
+name=mysql-whitelist-timestamp-source
+connector.class=io.confluent.connect.jdbc.JdbcSourceConnector
+tasks.max=10
+
+connection.url=jdbc:mysql://192.168.25.133:3306/trainingdb?user=root&password=root
+table.whitelist=employee
+
+mode=incrementing
+incrementing.column.name=emp_id
+
+topic.prefix=mysql-
+
+
+
+starting cassandra
+C:\Users\Administrator\Desktop\Softwares\apache-cassandra-3.11.7\bin>
+
+cassandra
+
+bin\windows\connect-standalone.bat config\connect-standalone.properties config\mysql-source-connector.properties
+
+
+[kafka@localhost confluent-5.1.0]$ sudo bin/connect-standalone etc/schema-registry/connect-avro-standalone.properties etc/kafka-connect-jdbc/mysql-source-connector.properties 
+
+
+sudo ./kafka-topics --list --zookeeper localhost:2181
+
+sudo ./kafka-avro-console-consumer --topic mysql-employee --bootstrap-server localhost:9092 --from-beginning
+
+
+
+
+bin\windows\connect-standalone.bat config\connect-standalone.properties config\mysql-source-connector.properties
+
+kafka-console-consumer.bat --topic mysql-employee --bootstrap-server localhost:9092 --from-beginning
+
+
+download python from https://www.python.org/ftp/python/2.7/python-2.7.amd64.msi
+
+C:\Users\Administrator\Desktop\Softwares\apache-cassandra-3.11.7\bin>cassandra
+
+C:\Users\Administrator\Desktop\Softwares\apache-cassandra-3.11.7\bin>PATH=c:\python27;%PATH%
+
+C:\Users\Administrator\Desktop\Softwares\apache-cassandra-3.11.7\bin>cqlsh
+
+cqlsh> create keyspace testkeyspace with replication={'class':'SimpleStrategy','replication_factor':1};
+cqlsh> use testkeyspace;
+cqlsh:testkeyspace> create table employee_tbl(id int primary key,name text,designation text,salary int);
+
+http://notepad.pw/7gp1cx2u
+

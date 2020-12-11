@@ -29,7 +29,6 @@ public class StreamingApp {
         KafkaStreams kafkaStreams = new KafkaStreams(topology, props);
         kafkaStreams.start();
 
-
         try {
             Thread.sleep(5 * 60 * 1000);
         } catch (InterruptedException e) {
