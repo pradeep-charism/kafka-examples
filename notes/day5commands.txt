@@ -1,0 +1,319 @@
+kafka\config\mysql-source-connector-etl.properties
+
+
+name=mysql-for-etl
+connector.class=io.confluent.connect.jdbc.JdbcSourceConnector
+tasks.max=10
+
+connection.url=jdbc:mysql://192.168.25.133:3306/trainingdb?user=root&password=root
+table.whitelist=employee
+
+mode=incrementing
+incrementing.column.name=emp_id
+
+topic.prefix=mysql-topic-
+
+
+
+package com.jpmc.training.domain;
+
+public class Employee {
+	private int emp_id;
+	private String emp_name;
+	private String designation;
+	private int salary;
+	public int getEmp_id() {
+		return emp_id;
+	}
+	public void setEmp_id(int emp_id) {
+		this.emp_id = emp_id;
+	}
+	public String getEmp_name() {
+		return emp_name;
+	}
+	public void setEmp_name(String emp_name) {
+		this.emp_name = emp_name;
+	}
+	public String getDesignation() {
+		return designation;
+	}
+	public void setDesignation(String designation) {
+		this.designation = designation;
+	}
+	public int getSalary() {
+		return salary;
+	}
+	public void setSalary(int salary) {
+		this.salary = salary;
+	}
+	public Employee(int emp_id, String emp_name, String designation, int salary) {
+		super();
+		this.emp_id = emp_id;
+		this.emp_name = emp_name;
+		this.designation = designation;
+		this.salary = salary;
+	}
+	public Employee() {
+		super();
+		// TODO Auto-generated constructor stub
+	}
+	
+	
+}
+
+
+
+kafka\config\cassandra-sink-connector-etl.properties
+
+name=cassandra-sink
+connector.class=com.datamountaineer.streamreactor.connect.cassandra.sink.CassandraSinkConnector
+tasks.max=1
+topics=cassandra-topic-employee
+connect.cassandra.kcql=INSERT INTO employee_tbl SELECT emp_id as id,emp_name as name,designation as designation, salary as salary FROM cassandra-topic-employee
+connect.cassandra.port=9042
+connect.cassandra.key.space=testkeyspace
+connect.cassandra.contact.points=localhost
+
+
+
+package com.jpmc.training.serde;
+
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serializer;
+
+import com.jpmc.training.deserializer.EmployeeDeserializer;
+import com.jpmc.training.domain.Employee;
+import com.jpmc.training.serializer.EmployeeSerializer;
+
+public class EmployeeSerde implements Serde<Employee>{
+
+	@Override
+	public Deserializer<Employee> deserializer() {
+		// TODO Auto-generated method stub
+		return new EmployeeDeserializer();
+	}
+
+	@Override
+	public Serializer<Employee> serializer() {
+		// TODO Auto-generated method stub
+		return new EmployeeSerializer();
+	}
+
+}
+
+
+
+EmployeeStreamingApp
+
+
+package com.jpmc.training.kafkastreams;
+
+import java.util.Properties;
+
+import org.apache.kafka.common.serialization.Serdes.StringSerde;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.kstream.KStream;
+
+import com.jpmc.training.domain.Employee;
+import com.jpmc.training.serde.EmployeeSerde;
+
+public class EmployeeStreamingApp {
+	public static void main(String[] args) {
+		Properties props=new Properties();
+		props.setProperty(StreamsConfig.APPLICATION_ID_CONFIG	, "mysql-cassandra-etl-app");
+		props.setProperty(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG	, "localhost:9092");
+		props.setProperty(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, StringSerde.class.getName());
+		props.setProperty(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, EmployeeSerde.class.getName());
+
+		StreamsBuilder builder=new StreamsBuilder();
+
+		KStream<String, Employee> mysqlEmpData=builder.stream("mysql-topic-employee");
+		KStream<String, Employee> empWithSalaryData=mysqlEmpData.mapValues(emp->{
+			System.out.println("processing employee with id "+emp.getEmp_id());
+			Employee employee=new Employee();
+			employee.setEmp_id(emp.getEmp_id());
+			employee.setEmp_name(emp.getEmp_name());
+			String designation=emp.getDesignation();
+			employee.setDesignation(designation);
+			int salary=20000;
+			if(designation.equals("Developer")) {
+				salary=30000;
+			}
+			else if(designation.equals("Accountant")) {
+				salary=25000;
+			}
+			employee.setSalary(salary);
+			return employee;
+		});
+		
+		empWithSalaryData.to("cassandra-topic-employee");
+
+		Topology topogy=builder.build();
+		KafkaStreams streams=new KafkaStreams(topogy, props);
+
+		streams.start();
+
+
+		try {
+			Thread.sleep(5*60*1000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+}
+
+
+bin\windows\connect-standalone.bat config\connect-standalone.properties config\mysql-source-connector-etl.properties config\cassandra-sink-connector-etl.properties
+
+insert into employee(emp_name,designation) values("Ravi","Developer");
+
+
+
+cqlsh>select * from employee_tbl;
+
+
+
+package com.jpmc.training.kafkastreams;
+
+import java.util.Properties;
+
+
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.common.serialization.Serdes.StringSerde;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.kstream.KGroupedStream;
+import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.Produced;
+
+import com.jpmc.training.domain.Employee;
+import com.jpmc.training.serde.EmployeeSerde;
+
+public class EmployeeStreamingAggregationApp {
+	public static void main(String[] args) {
+		Properties props=new Properties();
+		props.setProperty(StreamsConfig.APPLICATION_ID_CONFIG	, "mysql-cassandra-etl-app");
+		props.setProperty(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG	, "localhost:9092");
+		props.setProperty(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, StringSerde.class.getName());
+		props.setProperty(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, EmployeeSerde.class.getName());
+
+		StreamsBuilder builder=new StreamsBuilder();
+
+		KStream<String, Employee> mysqlEmpData=builder.stream("mysql-topic1-employee");
+		KStream<String, Employee> empWithKeyStream=mysqlEmpData.selectKey((key,value)->value.getDesignation());
+		KGroupedStream<String, Employee> groupedByDesignation=empWithKeyStream.groupByKey();
+		KTable<String, Long> count=groupedByDesignation.count();
+		count.toStream().to("count-employee",Produced.with(Serdes.String(), Serdes.Long()));
+
+		Topology topogy=builder.build();
+		KafkaStreams streams=new KafkaStreams(topogy, props);
+
+		streams.start();
+
+
+		try {
+			Thread.sleep(5*60*1000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+}
+
+
+
+kafka\config\mysql-source-connector-count.properties
+
+name=mysql-for-count
+connector.class=io.confluent.connect.jdbc.JdbcSourceConnector
+tasks.max=10
+
+connection.url=jdbc:mysql://192.168.25.133:3306/trainingdb?user=root&password=root
+table.whitelist=employee
+
+mode=incrementing
+incrementing.column.name=emp_id
+
+topic.prefix=mysql-topic1-
+
+
+
+
+bin\windows\connect-standalone.bat config\connect-standalone.properties config\mysql-source-connector-count.properties
+
+kafka-console-consumer.bat --topic count-employee --bootstrap-server localhost:9092 --from-beginning --property value.deserializer=org.apache.kafka.common.serialization.LongDeserializer --property print.key=true
+
+
+
+
+cd ~/Desktop/Kafka/confluent-5.1.0/bin/
+
+./sudo confluent start ksql-server
+
+ sudo ./confluent status
+
+ sudo ./ksql
+
+
+ksql> list topics;
+
+confluent/bin>
+sudo ./kafka-topics --create --topic user-topic --partitions 3 --replication-factor 1 --zookeeper localhost:2181
+ksql>create stream users_stream(name varchar,country varchar)with (kafka_topic='user-topic',value_format='json');
+ksql>list streams;
+
+ksql>select name,country from users_stream;
+
+
+[kafka@localhost bin]$ sudo ./kafka-console-producer --topic user-topic --broker-list localhost:9092
+[sudo] password for kafka: 
+{"name":"Arun","country":"India"}
+{"name":"Suresh","country":"US"}
+
+
+ksql>set 'auto.offset.reset'='earliest';
+
+
+ksql> select country,count(*) from users_stream group by country;
+
+
+kafka\start-server1.bat
+
+start "Server-1" bin\windows\kafka-server-start.bat config\server-1.properties
+
+
+kafka\start-server2.bat
+
+start "Server-2" bin\windows\kafka-server-start.bat config\server-2.properties
+
+
+kafka\start-server3.bat
+
+start "Server-3" bin\windows\kafka-server-start.bat config\server-3.properties
+
+
+
+
+bin\windows\zookeeper-server-start.bat config\zookeeper.properties
+
+kafka-topics.bat --create --topic test-cluster-topic --partitions 5 --replication-factor 2 --zookeeper localhost:2181
+
+kafka-topics.bat --describe --topic test-cluster-topic --zookeeper localhost:2181
+
+
+
+
+
+
+
+
